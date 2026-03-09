@@ -1,0 +1,1596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ZenStudent — Stress Analyzer & Wellness Manager</title>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --surface: #111827;
+    --surface2: #1a2235;
+    --border: #1e2d45;
+    --accent: #00e5ff;
+    --accent2: #7c3aed;
+    --accent3: #10b981;
+    --warn: #f59e0b;
+    --danger: #ef4444;
+    --text: #e2e8f0;
+    --muted: #64748b;
+    --low: #10b981;
+    --moderate: #f59e0b;
+    --high: #ef4444;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+  /* STARS BACKGROUND */
+  body::before {
+    content: '';
+    position: fixed; inset: 0;
+    background-image:
+      radial-gradient(1px 1px at 20% 30%, rgba(0,229,255,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 80% 10%, rgba(124,58,237,0.4) 0%, transparent 100%),
+      radial-gradient(1px 1px at 50% 80%, rgba(16,185,129,0.3) 0%, transparent 100%),
+      radial-gradient(1px 1px at 10% 60%, rgba(0,229,255,0.2) 0%, transparent 100%),
+      radial-gradient(1px 1px at 90% 70%, rgba(124,58,237,0.2) 0%, transparent 100%);
+    pointer-events: none;
+    z-index: 0;
+  }
+
+  /* ---- AUTH SCREENS ---- */
+  .auth-wrapper {
+    display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; padding: 20px; position: relative; z-index: 1;
+  }
+  .auth-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 24px;
+    padding: 48px 40px;
+    width: 100%; max-width: 440px;
+    box-shadow: 0 0 80px rgba(0,229,255,0.05);
+    animation: fadeUp 0.5s ease;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(20px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  .auth-logo {
+    font-family: 'Syne', sans-serif;
+    font-size: 28px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 6px;
+  }
+  .auth-subtitle { color: var(--muted); font-size: 14px; margin-bottom: 36px; }
+  .form-group { margin-bottom: 20px; }
+  .form-group label {
+    display: block; font-size: 13px; font-weight: 500;
+    color: var(--muted); margin-bottom: 8px; text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .form-group input {
+    width: 100%; padding: 14px 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 15px;
+    transition: border-color 0.2s, box-shadow 0.2s;
+    outline: none;
+  }
+  .form-group input:focus {
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px rgba(0,229,255,0.1);
+  }
+  .btn-primary {
+    width: 100%; padding: 14px;
+    background: linear-gradient(135deg, var(--accent), #0090a8);
+    border: none; border-radius: 12px;
+    color: #0a0e1a; font-family: 'Syne', sans-serif;
+    font-size: 15px; font-weight: 700; cursor: pointer;
+    transition: opacity 0.2s, transform 0.1s;
+    margin-top: 8px;
+  }
+  .btn-primary:hover { opacity: 0.9; transform: translateY(-1px); }
+  .auth-switch {
+    text-align: center; margin-top: 20px;
+    font-size: 14px; color: var(--muted);
+  }
+  .auth-switch a { color: var(--accent); cursor: pointer; text-decoration: none; }
+  .auth-switch a:hover { text-decoration: underline; }
+  .error-msg {
+    background: rgba(239,68,68,0.1); border: 1px solid rgba(239,68,68,0.3);
+    border-radius: 8px; padding: 10px 14px;
+    color: #fca5a5; font-size: 13px; margin-bottom: 16px;
+  }
+  .pass-rules {
+    font-size: 12px; color: var(--muted); margin-top: 6px; line-height: 1.7;
+  }
+  .pass-rules span { display: inline-block; margin-right: 8px; }
+  .rule-ok { color: var(--accent3); }
+
+  /* ---- MAIN APP ---- */
+  .app { display: none; flex-direction: column; min-height: 100vh; position: relative; z-index: 1; }
+  .app.active { display: flex; }
+
+  /* SIDEBAR */
+  .sidebar {
+    position: fixed; left: 0; top: 0; bottom: 0;
+    width: 240px; background: var(--surface);
+    border-right: 1px solid var(--border);
+    padding: 28px 16px; display: flex; flex-direction: column;
+    z-index: 100; transition: transform 0.3s;
+  }
+  .sidebar-logo {
+    font-family: 'Syne', sans-serif; font-size: 20px; font-weight: 800;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    padding: 0 8px; margin-bottom: 36px;
+  }
+  .nav-item {
+    display: flex; align-items: center; gap: 12px;
+    padding: 11px 14px; border-radius: 10px;
+    cursor: pointer; transition: all 0.2s;
+    font-size: 14px; font-weight: 500; color: var(--muted);
+    margin-bottom: 4px;
+  }
+  .nav-item:hover { background: var(--surface2); color: var(--text); }
+  .nav-item.active { background: rgba(0,229,255,0.08); color: var(--accent); }
+  .nav-item .icon { font-size: 18px; width: 22px; text-align: center; }
+  .sidebar-footer {
+    margin-top: auto; padding: 0 8px;
+    font-size: 13px; color: var(--muted);
+  }
+  .user-pill {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 8px; border-radius: 10px;
+    background: var(--surface2); border: 1px solid var(--border);
+    margin-bottom: 12px;
+  }
+  .user-avatar {
+    width: 32px; height: 32px; border-radius: 50%;
+    background: linear-gradient(135deg, var(--accent), var(--accent2));
+    display: flex; align-items: center; justify-content: center;
+    font-family: 'Syne', sans-serif; font-size: 13px; font-weight: 700; color: #fff;
+  }
+  .user-name { font-size: 13px; font-weight: 500; color: var(--text); }
+  .logout-btn {
+    background: none; border: 1px solid var(--border); border-radius: 8px;
+    color: var(--muted); cursor: pointer; padding: 8px 14px;
+    font-size: 13px; width: 100%; transition: all 0.2s;
+  }
+  .logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+  /* MAIN CONTENT */
+  .main { margin-left: 240px; padding: 32px; flex: 1; }
+  .page { display: none; animation: fadeUp 0.4s ease; }
+  .page.active { display: block; }
+  .page-title {
+    font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 700;
+    margin-bottom: 4px;
+  }
+  .page-desc { color: var(--muted); font-size: 14px; margin-bottom: 32px; }
+
+  /* CARDS */
+  .card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px;
+  }
+  .card-title {
+    font-family: 'Syne', sans-serif; font-size: 16px; font-weight: 700;
+    margin-bottom: 16px; display: flex; align-items: center; gap: 8px;
+  }
+  .grid-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  .grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+  .grid-4 { display: grid; grid-template-columns: 1fr 1fr 1fr 1fr; gap: 16px; }
+
+  /* DASHBOARD */
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 14px; padding: 20px;
+    display: flex; flex-direction: column; gap: 8px;
+  }
+  .stat-label { font-size: 12px; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
+  .stat-value {
+    font-family: 'Syne', sans-serif; font-size: 28px; font-weight: 800;
+  }
+  .stat-sub { font-size: 12px; color: var(--muted); }
+  .stress-badge {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 14px; border-radius: 100px; font-size: 13px; font-weight: 600;
+    font-family: 'Syne', sans-serif;
+  }
+  .badge-low { background: rgba(16,185,129,0.15); color: var(--low); border: 1px solid rgba(16,185,129,0.3); }
+  .badge-moderate { background: rgba(245,158,11,0.15); color: var(--moderate); border: 1px solid rgba(245,158,11,0.3); }
+  .badge-high { background: rgba(239,68,68,0.15); color: var(--high); border: 1px solid rgba(239,68,68,0.3); }
+
+  /* STRESS BAR */
+  .stress-meter { margin: 16px 0; }
+  .meter-track {
+    height: 10px; background: var(--surface2); border-radius: 100px;
+    overflow: hidden; position: relative;
+  }
+  .meter-fill {
+    height: 100%; border-radius: 100px;
+    transition: width 1s cubic-bezier(.4,0,.2,1);
+  }
+
+  /* FORM INPUTS */
+  .input-range { position: relative; }
+  .range-input {
+    width: 100%; appearance: none; height: 6px;
+    background: var(--surface2); border-radius: 3px; outline: none;
+    cursor: pointer; margin: 8px 0;
+  }
+  .range-input::-webkit-slider-thumb {
+    appearance: none; width: 20px; height: 20px;
+    background: var(--accent); border-radius: 50%; cursor: pointer;
+    box-shadow: 0 0 8px rgba(0,229,255,0.5);
+  }
+  .range-val {
+    font-family: 'DM Mono', monospace; font-size: 22px; font-weight: 500;
+    color: var(--accent); text-align: center;
+  }
+  .range-label {
+    display: flex; justify-content: space-between;
+    font-size: 11px; color: var(--muted); margin-top: 4px;
+  }
+
+  /* TABLE */
+  .data-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .data-table th {
+    text-align: left; padding: 12px 16px;
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted); border-bottom: 1px solid var(--border);
+  }
+  .data-table td { padding: 14px 16px; border-bottom: 1px solid rgba(30,45,69,0.5); }
+  .data-table tr:last-child td { border-bottom: none; }
+  .data-table tr:hover td { background: rgba(255,255,255,0.02); }
+
+  /* TIMETABLE */
+  .tt-slot {
+    display: flex; align-items: center; gap: 16px;
+    padding: 12px 16px; border-radius: 10px;
+    margin-bottom: 8px; border-left: 3px solid transparent;
+    transition: all 0.2s;
+  }
+  .tt-slot:hover { background: var(--surface2); }
+  .tt-time {
+    font-family: 'DM Mono', monospace; font-size: 13px;
+    color: var(--muted); min-width: 100px;
+  }
+  .tt-icon { font-size: 20px; min-width: 28px; text-align: center; }
+  .tt-label { font-size: 14px; font-weight: 500; }
+  .tt-dur { font-size: 12px; color: var(--muted); margin-left: auto; }
+
+  /* GAMES */
+  .game-card {
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 16px; padding: 24px; text-align: center;
+    cursor: pointer; transition: all 0.25s; position: relative; overflow: hidden;
+  }
+  .game-card::before {
+    content: ''; position: absolute; inset: 0;
+    background: linear-gradient(135deg, transparent, rgba(0,229,255,0.05));
+    opacity: 0; transition: opacity 0.3s;
+  }
+  .game-card:hover::before { opacity: 1; }
+  .game-card:hover { border-color: var(--accent); transform: translateY(-3px); }
+  .game-emoji { font-size: 40px; margin-bottom: 12px; }
+  .game-name { font-family: 'Syne', sans-serif; font-size: 15px; font-weight: 700; margin-bottom: 6px; }
+  .game-desc { font-size: 13px; color: var(--muted); }
+
+  /* GAME AREA */
+  .game-area {
+    display: none; position: fixed; inset: 0; background: rgba(10,14,26,0.95);
+    z-index: 200; flex-direction: column; align-items: center; justify-content: center;
+  }
+  .game-area.active { display: flex; }
+  .game-inner {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 24px; padding: 40px; max-width: 600px; width: 90%;
+    text-align: center; position: relative;
+  }
+  .close-game {
+    position: absolute; top: 16px; right: 16px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 8px; color: var(--muted); cursor: pointer; padding: 6px 12px;
+    font-size: 13px; transition: all 0.2s;
+  }
+  .close-game:hover { color: var(--text); }
+
+  /* MEMORY GAME */
+  .memory-grid {
+    display: grid; grid-template-columns: repeat(4,1fr); gap: 10px; margin: 20px 0;
+  }
+  .mem-card {
+    aspect-ratio: 1; border-radius: 10px; background: var(--surface2);
+    border: 1px solid var(--border); cursor: pointer;
+    display: flex; align-items: center; justify-content: center;
+    font-size: 28px; transition: all 0.3s; user-select: none;
+  }
+  .mem-card.flipped { background: rgba(0,229,255,0.08); border-color: var(--accent); }
+  .mem-card.matched { background: rgba(16,185,129,0.1); border-color: var(--low); cursor: default; }
+  .mem-card.hidden-face span { display: none; }
+
+  /* REMINDERS */
+  .reminder-item {
+    display: flex; align-items: center; justify-content: space-between;
+    padding: 14px 16px; background: var(--surface2);
+    border-radius: 10px; margin-bottom: 10px;
+    border: 1px solid var(--border);
+  }
+  .reminder-left { display: flex; align-items: center; gap: 12px; }
+  .reminder-icon { font-size: 20px; }
+  .reminder-name { font-size: 14px; font-weight: 500; }
+  .reminder-time { font-size: 12px; color: var(--muted); font-family: 'DM Mono', monospace; }
+  .reminder-del {
+    background: none; border: none; color: var(--muted); cursor: pointer;
+    padding: 4px 8px; border-radius: 6px; transition: color 0.2s;
+    font-size: 16px;
+  }
+  .reminder-del:hover { color: var(--danger); }
+
+  /* CUSTOM ROUTINE */
+  .routine-slot {
+    display: flex; align-items: center; gap: 12px; margin-bottom: 10px;
+  }
+  .routine-slot input {
+    flex: 1; padding: 10px 14px;
+    background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 10px; color: var(--text);
+    font-family: 'DM Sans', sans-serif; font-size: 14px;
+    outline: none; transition: border-color 0.2s;
+  }
+  .routine-slot input:focus { border-color: var(--accent); }
+  .btn-sm {
+    padding: 8px 16px; border-radius: 8px; font-size: 13px;
+    font-family: 'Syne', sans-serif; font-weight: 600; cursor: pointer;
+    transition: all 0.2s; border: none;
+  }
+  .btn-accent { background: rgba(0,229,255,0.15); color: var(--accent); }
+  .btn-accent:hover { background: rgba(0,229,255,0.25); }
+  .btn-danger { background: rgba(239,68,68,0.1); color: var(--danger); }
+  .btn-danger:hover { background: rgba(239,68,68,0.2); }
+
+  /* WEEKLY CHART */
+  .week-chart {
+    display: flex; align-items: flex-end; gap: 8px;
+    height: 100px; padding: 0 8px;
+  }
+  .week-bar-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 4px; }
+  .week-bar {
+    width: 100%; border-radius: 4px 4px 0 0;
+    transition: height 0.8s cubic-bezier(.4,0,.2,1);
+    min-height: 4px;
+  }
+  .week-day { font-size: 10px; color: var(--muted); text-transform: uppercase; }
+
+  /* SUGGESTIONS */
+  .suggestion {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 14px; background: var(--surface2);
+    border-radius: 10px; margin-bottom: 10px;
+    border-left: 3px solid var(--accent3);
+  }
+  .suggestion-icon { font-size: 18px; margin-top: 1px; }
+  .suggestion-text { font-size: 14px; line-height: 1.6; }
+
+  /* NOTIFICATION */
+  .toast {
+    position: fixed; bottom: 24px; right: 24px;
+    background: var(--surface); border: 1px solid var(--accent3);
+    border-radius: 12px; padding: 14px 20px;
+    color: var(--text); font-size: 14px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.3);
+    z-index: 999; transform: translateY(100px); opacity: 0;
+    transition: all 0.4s cubic-bezier(.4,0,.2,1);
+    max-width: 320px;
+  }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast-icon { font-size: 16px; margin-right: 8px; }
+
+  /* COMPARISON TABLE */
+  .compare-row {
+    display: grid; grid-template-columns: 1fr 1fr 1fr;
+    gap: 0; padding: 12px 16px;
+    border-bottom: 1px solid rgba(30,45,69,0.5);
+    font-size: 14px;
+  }
+  .compare-row.header {
+    font-size: 11px; text-transform: uppercase; letter-spacing: 0.06em;
+    color: var(--muted);
+  }
+  .compare-row:last-child { border-bottom: none; }
+
+  /* PULSE DOT */
+  .live-dot {
+    width: 8px; height: 8px; border-radius: 50%; background: var(--accent3);
+    display: inline-block; margin-right: 6px;
+    box-shadow: 0 0 0 0 rgba(16,185,129,0.4);
+    animation: pulse 2s infinite;
+  }
+  @keyframes pulse {
+    0% { box-shadow: 0 0 0 0 rgba(16,185,129,0.4); }
+    70% { box-shadow: 0 0 0 8px rgba(16,185,129,0); }
+    100% { box-shadow: 0 0 0 0 rgba(16,185,129,0); }
+  }
+
+  /* RESPONSIVE */
+  @media (max-width: 768px) {
+    .sidebar { transform: translateX(-100%); }
+    .sidebar.open { transform: translateX(0); }
+    .main { margin-left: 0; padding: 20px; }
+    .grid-2, .grid-3, .grid-4 { grid-template-columns: 1fr; }
+  }
+  .toggle-sidebar {
+    display: none; position: fixed; top: 16px; left: 16px;
+    z-index: 150; background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 8px 12px; cursor: pointer; font-size: 18px;
+  }
+  @media (max-width: 768px) { .toggle-sidebar { display: block; } }
+
+  select {
+    padding: 14px 16px; background: var(--surface2); border: 1px solid var(--border);
+    border-radius: 12px; color: var(--text); font-family: 'DM Sans', sans-serif;
+    font-size: 15px; outline: none; cursor: pointer;
+  }
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+  .text-accent { color: var(--accent); }
+  .text-low { color: var(--low); }
+  .text-mod { color: var(--moderate); }
+  .text-high { color: var(--high); }
+  .mb-16 { margin-bottom: 16px; }
+  .mb-24 { margin-bottom: 24px; }
+  .mt-24 { margin-top: 24px; }
+  .flex { display: flex; }
+  .items-center { align-items: center; }
+  .justify-between { justify-content: space-between; }
+  .gap-12 { gap: 12px; }
+</style>
+</head>
+<body>
+
+<!-- ========== AUTH SCREENS ========== -->
+<div id="authWrapper" class="auth-wrapper">
+  <!-- LOGIN -->
+  <div id="loginCard" class="auth-card">
+    <div class="auth-logo">⚡ ZenStudent</div>
+    <div class="auth-subtitle">Student Life Stress Analyzer & Wellness Manager</div>
+    <div id="loginErr" class="error-msg" style="display:none"></div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="loginEmail" placeholder="you@college.edu">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="loginPass" placeholder="••••••••">
+    </div>
+    <button class="btn-primary" onclick="doLogin()">Sign In →</button>
+    <div class="auth-switch">No account? <a onclick="showSignup()">Create one</a></div>
+  </div>
+
+  <!-- SIGNUP -->
+  <div id="signupCard" class="auth-card" style="display:none">
+    <div class="auth-logo">⚡ ZenStudent</div>
+    <div class="auth-subtitle">Create your wellness account</div>
+    <div id="signupErr" class="error-msg" style="display:none"></div>
+    <div class="form-group">
+      <label>Full Name</label>
+      <input type="text" id="signupName" placeholder="Your name">
+    </div>
+    <div class="form-group">
+      <label>Email Address</label>
+      <input type="email" id="signupEmail" placeholder="you@college.edu">
+    </div>
+    <div class="form-group">
+      <label>Password</label>
+      <input type="password" id="signupPass" placeholder="Create a strong password" oninput="checkPassRules()">
+      <div class="pass-rules" id="passRules">
+        <span id="rule1">✗ More than 6 chars</span>
+        <span id="rule2">✗ Has a digit</span>
+        <span id="rule3">✗ Has special char</span>
+      </div>
+    </div>
+    <button class="btn-primary" onclick="doSignup()">Create Account →</button>
+    <div class="auth-switch">Already have one? <a onclick="showLogin()">Log in</a></div>
+  </div>
+</div>
+
+<!-- ========== MAIN APP ========== -->
+<button class="toggle-sidebar" onclick="toggleSidebar()">☰</button>
+<div id="app" class="app">
+  <!-- SIDEBAR -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">⚡ ZenStudent</div>
+    <nav>
+      <div class="nav-item active" data-page="dashboard" onclick="navTo('dashboard',this)">
+        <span class="icon">📊</span> Dashboard
+      </div>
+      <div class="nav-item" data-page="analyzer" onclick="navTo('analyzer',this)">
+        <span class="icon">🧠</span> Stress Analyzer
+      </div>
+      <div class="nav-item" data-page="history" onclick="navTo('history',this)">
+        <span class="icon">📋</span> History & Reports
+      </div>
+      <div class="nav-item" data-page="timetable" onclick="navTo('timetable',this)">
+        <span class="icon">📅</span> Ideal Timetable
+      </div>
+      <div class="nav-item" data-page="games" onclick="navTo('games',this)">
+        <span class="icon">🎮</span> Stress Relief Games
+      </div>
+      <div class="nav-item" data-page="reminders" onclick="navTo('reminders',this)">
+        <span class="icon">⏰</span> Reminders
+      </div>
+      <div class="nav-item" data-page="routine" onclick="navTo('routine',this)">
+        <span class="icon">✏️</span> Custom Routine
+      </div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-pill">
+        <div class="user-avatar" id="sidebarAvatar">?</div>
+        <div>
+          <div class="user-name" id="sidebarName">User</div>
+          <div style="font-size:11px;color:var(--muted)" id="sidebarEmail">—</div>
+        </div>
+      </div>
+      <button class="logout-btn" onclick="doLogout()">⏻ Logout</button>
+    </div>
+  </aside>
+
+  <!-- MAIN -->
+  <main class="main">
+
+    <!-- DASHBOARD -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-title">Dashboard <span class="live-dot"></span></div>
+      <div class="page-desc">Your wellness overview at a glance</div>
+
+      <div class="grid-4 mb-24">
+        <div class="stat-card">
+          <div class="stat-label">Stress Score</div>
+          <div class="stat-value text-accent" id="dash-score">—</div>
+          <div class="stat-sub">out of 100</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Stress Level</div>
+          <div id="dash-level-badge" style="margin-top:6px">
+            <span class="stress-badge badge-low">— No data</span>
+          </div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Analyses Done</div>
+          <div class="stat-value" id="dash-count">0</div>
+          <div class="stat-sub">total entries</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">Active Reminders</div>
+          <div class="stat-value" id="dash-reminders">0</div>
+          <div class="stat-sub">set</div>
+        </div>
+      </div>
+
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-title">📈 Weekly Stress Trend</div>
+          <div class="week-chart" id="weekChart"></div>
+          <div style="display:flex;justify-content:space-around;margin-top:8px">
+            <span style="font-size:11px;color:var(--muted)">Mon</span>
+            <span style="font-size:11px;color:var(--muted)">Tue</span>
+            <span style="font-size:11px;color:var(--muted)">Wed</span>
+            <span style="font-size:11px;color:var(--muted)">Thu</span>
+            <span style="font-size:11px;color:var(--muted)">Fri</span>
+            <span style="font-size:11px;color:var(--muted)">Sat</span>
+            <span style="font-size:11px;color:var(--muted)">Sun</span>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">🎯 Latest Stress Meter</div>
+          <div class="stress-meter">
+            <div class="flex justify-between mb-16">
+              <span style="font-size:13px;color:var(--muted)">Current Level</span>
+              <span id="dash-score-text" style="font-family:'DM Mono',monospace;font-size:13px;color:var(--accent)">—/100</span>
+            </div>
+            <div class="meter-track">
+              <div class="meter-fill" id="dashMeter" style="width:0%;background:var(--low)"></div>
+            </div>
+            <div class="range-label">
+              <span>🟢 Low</span><span>🟡 Moderate</span><span>🔴 High</span>
+            </div>
+          </div>
+          <div class="divider"></div>
+          <div id="dash-top-suggestion" style="font-size:14px;color:var(--muted);line-height:1.6">
+            👆 Run the Stress Analyzer to get your personalized wellness insights.
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title flex justify-between items-center">
+          <span>⏰ Upcoming Reminders</span>
+          <span style="font-size:12px;color:var(--muted);cursor:pointer" onclick="navTo('reminders',null)">View all →</span>
+        </div>
+        <div id="dash-reminders-list">
+          <div style="color:var(--muted);font-size:14px;padding:12px 0">No reminders set yet.</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ANALYZER -->
+    <div class="page" id="page-analyzer">
+      <div class="page-title">🧠 Stress Analyzer</div>
+      <div class="page-desc">Enter your daily routine to calculate your stress score</div>
+
+      <div class="grid-2 mb-24">
+        <div class="card">
+          <div class="card-title">📥 Daily Routine Inputs</div>
+
+          <div class="form-group mb-24">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Sleep Hours</label>
+            <div class="range-val" id="sleepVal">7h</div>
+            <input type="range" class="range-input" id="sleepHours" min="2" max="12" value="7" step="0.5" oninput="updateRange('sleep')">
+            <div class="range-label"><span>2h</span><span>12h</span></div>
+          </div>
+
+          <div class="form-group mb-24">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Study Hours</label>
+            <div class="range-val" id="studyVal">6h</div>
+            <input type="range" class="range-input" id="studyHours" min="0" max="16" value="6" step="0.5" oninput="updateRange('study')">
+            <div class="range-label"><span>0h</span><span>16h</span></div>
+          </div>
+
+          <div class="form-group mb-24">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Screen Time (non-study)</label>
+            <div class="range-val" id="screenVal">3h</div>
+            <input type="range" class="range-input" id="screenTime" min="0" max="14" value="3" step="0.5" oninput="updateRange('screen')">
+            <div class="range-label"><span>0h</span><span>14h</span></div>
+          </div>
+
+          <div class="form-group mb-24">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Break / Relaxation Time</label>
+            <div class="range-val" id="breakVal">1h</div>
+            <input type="range" class="range-input" id="breakTime" min="0" max="6" value="1" step="0.5" oninput="updateRange('break')">
+            <div class="range-label"><span>0h</span><span>6h</span></div>
+          </div>
+
+          <div class="form-group mb-24">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Exercise Time</label>
+            <div class="range-val" id="exerciseVal">0h</div>
+            <input type="range" class="range-input" id="exerciseTime" min="0" max="3" value="0" step="0.25" oninput="updateRange('exercise')">
+            <div class="range-label"><span>0h</span><span>3h</span></div>
+          </div>
+
+          <div class="form-group" style="margin-bottom:8px">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:10px">Exam / Assignment Pressure</label>
+            <select id="pressure" style="width:100%">
+              <option value="0">None</option>
+              <option value="10">Low (upcoming tasks)</option>
+              <option value="20" selected>Moderate (assignments due soon)</option>
+              <option value="35">High (exams this week)</option>
+            </select>
+          </div>
+
+          <button class="btn-primary" style="margin-top:20px" onclick="analyzeStress()">Analyze My Stress ⚡</button>
+        </div>
+
+        <div class="card" id="resultCard">
+          <div class="card-title">📊 Analysis Results</div>
+          <div id="resultEmpty" style="color:var(--muted);font-size:14px;padding:20px 0;text-align:center;opacity:0.7">
+            👈 Set your inputs and click Analyze
+          </div>
+          <div id="resultContent" style="display:none">
+            <div style="text-align:center;margin-bottom:24px">
+              <div style="font-size:48px;font-family:'Syne',sans-serif;font-weight:800;margin-bottom:8px" id="resScore">—</div>
+              <div id="resBadge"></div>
+              <div class="stress-meter" style="margin-top:16px">
+                <div class="meter-track">
+                  <div class="meter-fill" id="resMeter" style="width:0%"></div>
+                </div>
+              </div>
+            </div>
+
+            <table class="data-table" style="margin-bottom:20px">
+              <thead><tr>
+                <th>Parameter</th><th>Your Value</th><th>Ideal</th><th>Status</th>
+              </tr></thead>
+              <tbody id="resultTable"></tbody>
+            </table>
+
+            <div class="card-title" style="margin-top:16px">💡 Personalized Suggestions</div>
+            <div id="suggestions"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- HISTORY -->
+    <div class="page" id="page-history">
+      <div class="page-title">📋 History & Reports</div>
+      <div class="page-desc">Track your stress levels over time</div>
+      <div class="card">
+        <div class="flex justify-between items-center mb-16">
+          <div class="card-title" style="margin-bottom:0">Analysis History</div>
+          <button class="btn-sm btn-danger" onclick="clearHistory()">Clear History</button>
+        </div>
+        <div id="historyEmpty" style="color:var(--muted);font-size:14px;padding:20px 0;text-align:center">
+          No analyses yet. Run the Stress Analyzer to get started!
+        </div>
+        <div id="historyTable" style="display:none">
+          <table class="data-table" style="width:100%">
+            <thead><tr>
+              <th>#</th><th>Date & Time</th><th>Sleep</th><th>Study</th><th>Screen</th><th>Break</th><th>Score</th><th>Level</th>
+            </tr></thead>
+            <tbody id="historyBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <!-- TIMETABLE -->
+    <div class="page" id="page-timetable">
+      <div class="page-title">📅 Ideal Daily Timetable</div>
+      <div class="page-desc">Your personalized balanced schedule based on stress level</div>
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">⚙️ Generate Schedule</div>
+          <div class="form-group mb-16">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:8px">Select Stress Level</label>
+            <select id="ttStressLevel" style="width:100%">
+              <option value="low">Low Stress</option>
+              <option value="moderate" selected>Moderate Stress</option>
+              <option value="high">High Stress</option>
+            </select>
+          </div>
+          <div class="form-group mb-16">
+            <label style="font-size:12px;text-transform:uppercase;letter-spacing:0.05em;color:var(--muted);display:block;margin-bottom:8px">Wake Up Time</label>
+            <input type="time" id="wakeTime" value="06:00" style="width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;outline:none;font-family:'DM Mono',monospace">
+          </div>
+          <button class="btn-primary" onclick="generateTimetable()">Generate Timetable 📅</button>
+        </div>
+        <div class="card">
+          <div class="card-title" id="ttTitle">📅 Today's Recommended Schedule</div>
+          <div id="ttContent">
+            <div style="color:var(--muted);font-size:14px;padding:10px 0">Click "Generate Timetable" to see your schedule →</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- GAMES -->
+    <div class="page" id="page-games">
+      <div class="page-title">🎮 Stress Relief Games</div>
+      <div class="page-desc">Take a break and reset your mind with these quick games</div>
+      <div class="grid-3">
+        <div class="game-card" onclick="openGame('memory')">
+          <div class="game-emoji">🃏</div>
+          <div class="game-name">Memory Match</div>
+          <div class="game-desc">Flip cards and find matching pairs. Great for focus.</div>
+        </div>
+        <div class="game-card" onclick="openGame('reaction')">
+          <div class="game-emoji">⚡</div>
+          <div class="game-name">Reaction Speed</div>
+          <div class="game-desc">Test your reaction time. Trains alertness.</div>
+        </div>
+        <div class="game-card" onclick="openGame('breath')">
+          <div class="game-emoji">🫁</div>
+          <div class="game-name">Breathing Guide</div>
+          <div class="game-desc">Follow the animation for calming 4-7-8 breathing.</div>
+        </div>
+      </div>
+
+      <div style="margin-top:24px" class="card">
+        <div class="card-title">🧘 Quick Wellness Tips</div>
+        <div class="grid-2">
+          <div class="suggestion">
+            <div class="suggestion-icon">🌬️</div>
+            <div class="suggestion-text"><strong>Box Breathing:</strong> Inhale 4s → Hold 4s → Exhale 4s → Hold 4s. Repeat 4 times to calm your nervous system.</div>
+          </div>
+          <div class="suggestion">
+            <div class="suggestion-icon">👁️</div>
+            <div class="suggestion-text"><strong>20-20-20 Rule:</strong> Every 20 mins, look at something 20 feet away for 20 seconds to reduce eye strain.</div>
+          </div>
+          <div class="suggestion">
+            <div class="suggestion-icon">💧</div>
+            <div class="suggestion-text"><strong>Stay Hydrated:</strong> Drink a glass of water right now. Dehydration increases cortisol (stress hormone).</div>
+          </div>
+          <div class="suggestion">
+            <div class="suggestion-icon">🚶</div>
+            <div class="suggestion-text"><strong>Micro Walk:</strong> Stand up and take a 2-minute walk. Even short movement boosts mood and focus significantly.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- REMINDERS -->
+    <div class="page" id="page-reminders">
+      <div class="page-title">⏰ Reminder System</div>
+      <div class="page-desc">Set reminders to maintain a balanced routine</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">➕ Add New Reminder</div>
+          <div class="form-group mb-16">
+            <label style="font-size:12px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Reminder Type</label>
+            <select id="remType" style="width:100%">
+              <option value="📚">📚 Study Session</option>
+              <option value="☕">☕ Break Time</option>
+              <option value="💧">💧 Hydration</option>
+              <option value="😴">😴 Sleep Time</option>
+              <option value="🏃">🏃 Exercise</option>
+              <option value="🍎">🍎 Meal Time</option>
+              <option value="🧘">🧘 Meditation</option>
+            </select>
+          </div>
+          <div class="form-group mb-16">
+            <label style="font-size:12px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Label</label>
+            <input type="text" id="remLabel" placeholder="e.g. Morning study session" style="width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;outline:none;font-family:'DM Sans',sans-serif">
+          </div>
+          <div class="form-group mb-16">
+            <label style="font-size:12px;text-transform:uppercase;color:var(--muted);display:block;margin-bottom:8px">Time</label>
+            <input type="time" id="remTime" style="width:100%;padding:14px 16px;background:var(--surface2);border:1px solid var(--border);border-radius:12px;color:var(--text);font-size:15px;outline:none;font-family:'DM Mono',monospace">
+          </div>
+          <button class="btn-primary" onclick="addReminder()">Add Reminder ⏰</button>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📋 Your Reminders</div>
+          <div id="remindersList">
+            <div style="color:var(--muted);font-size:14px;padding:12px 0">No reminders yet. Add one!</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CUSTOM ROUTINE -->
+    <div class="page" id="page-routine">
+      <div class="page-title">✏️ Custom Routine Creator</div>
+      <div class="page-desc">Build and compare your personal daily schedule</div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">🛠️ Build Your Routine</div>
+          <div id="routineSlots"></div>
+          <button class="btn-sm btn-accent" onclick="addRoutineSlot()" style="margin-top:12px">+ Add Activity</button>
+          <div style="display:flex;gap:10px;margin-top:20px">
+            <button class="btn-primary" style="flex:1" onclick="saveRoutine()">Save Routine 💾</button>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📊 Routine Comparison</div>
+          <div id="comparisonContent">
+            <div style="color:var(--muted);font-size:14px;padding:10px 0">Save your routine to compare it with the recommended schedule.</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </main>
+</div>
+
+<!-- ========== GAME OVERLAYS ========== -->
+<div class="game-area" id="gameArea">
+  <div class="game-inner">
+    <button class="close-game" onclick="closeGame()">✕ Close</button>
+    <div id="gameContent"></div>
+  </div>
+</div>
+
+<!-- TOAST -->
+<div class="toast" id="toast">
+  <span class="toast-icon" id="toastIcon">✅</span>
+  <span id="toastMsg">Done!</span>
+</div>
+
+<script>
+// ==================== STATE ====================
+let users = JSON.parse(localStorage.getItem('zs_users') || '{}');
+let currentUser = null;
+let history = [];
+let reminders = [];
+let customRoutine = [];
+let weeklyData = [0,0,0,0,0,0,0];
+
+// ==================== AUTH ====================
+function showSignup() {
+  document.getElementById('loginCard').style.display = 'none';
+  document.getElementById('signupCard').style.display = 'block';
+}
+function showLogin() {
+  document.getElementById('signupCard').style.display = 'none';
+  document.getElementById('loginCard').style.display = 'block';
+}
+function checkPassRules() {
+  const p = document.getElementById('signupPass').value;
+  const r1 = document.getElementById('rule1');
+  const r2 = document.getElementById('rule2');
+  const r3 = document.getElementById('rule3');
+  const ok = v => `<span class="rule-ok">✓ ${v}</span>`;
+  const bad = v => `<span>${v}</span>`;
+  r1.outerHTML = `<span id="rule1" class="${p.length > 6 ? 'rule-ok' : ''}">${p.length > 6 ? '✓' : '✗'} More than 6 chars</span>`;
+  document.getElementById('rule1');
+  // simpler:
+  document.getElementById('rule1').textContent = (p.length > 6 ? '✓' : '✗') + ' More than 6 chars';
+  document.getElementById('rule1').className = p.length > 6 ? 'rule-ok' : '';
+  document.getElementById('rule2').textContent = (/\d/.test(p) ? '✓' : '✗') + ' Has a digit';
+  document.getElementById('rule2').className = /\d/.test(p) ? 'rule-ok' : '';
+  document.getElementById('rule3').textContent = (/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) ? '✓' : '✗') + ' Has special char';
+  document.getElementById('rule3').className = /[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(p) ? 'rule-ok' : '';
+}
+function doSignup() {
+  const name = document.getElementById('signupName').value.trim();
+  const email = document.getElementById('signupEmail').value.trim();
+  const pass = document.getElementById('signupPass').value;
+  const errEl = document.getElementById('signupErr');
+  if (!name || !email || !pass) { showErr(errEl, 'All fields are required.'); return; }
+  if (pass.length <= 6) { showErr(errEl, 'Password must be more than 6 characters.'); return; }
+  if (!/\d/.test(pass)) { showErr(errEl, 'Password must include at least one digit.'); return; }
+  if (!/[!@#$%^&*()_+\-=\[\]{}|;:,.<>?]/.test(pass)) { showErr(errEl, 'Password must include at least one special character.'); return; }
+  if (users[email]) { showErr(errEl, 'An account with this email already exists.'); return; }
+  users[email] = { name, email, pass, history: [], reminders: [], routine: [], weekly: [0,0,0,0,0,0,0] };
+  localStorage.setItem('zs_users', JSON.stringify(users));
+  toast('🎉 Account created! Please log in.');
+  showLogin();
+}
+function doLogin() {
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPass').value;
+  const errEl = document.getElementById('loginErr');
+  if (!email || !pass) { showErr(errEl, 'Enter your email and password.'); return; }
+  if (!users[email] || users[email].pass !== pass) { showErr(errEl, 'Invalid email or password.'); return; }
+  currentUser = users[email];
+  history = currentUser.history || [];
+  reminders = currentUser.reminders || [];
+  customRoutine = currentUser.routine || [];
+  weeklyData = currentUser.weekly || [0,0,0,0,0,0,0];
+  document.getElementById('authWrapper').style.display = 'none';
+  document.getElementById('app').classList.add('active');
+  document.getElementById('sidebarName').textContent = currentUser.name;
+  document.getElementById('sidebarEmail').textContent = currentUser.email;
+  document.getElementById('sidebarAvatar').textContent = currentUser.name[0].toUpperCase();
+  renderDashboard();
+  renderHistory();
+  renderReminders();
+  renderRoutine();
+  startReminderChecker();
+}
+function doLogout() {
+  saveUserData();
+  currentUser = null;
+  document.getElementById('app').classList.remove('active');
+  document.getElementById('authWrapper').style.display = 'flex';
+  navTo('dashboard', document.querySelector('[data-page="dashboard"]'));
+}
+function showErr(el, msg) {
+  el.style.display = 'block';
+  el.textContent = msg;
+}
+
+// ==================== NAVIGATION ====================
+function navTo(page, el) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  document.getElementById('page-' + page).classList.add('active');
+  if (el) el.classList.add('active');
+  else {
+    const navEl = document.querySelector(`[data-page="${page}"]`);
+    if (navEl) navEl.classList.add('active');
+  }
+  if (page === 'dashboard') renderDashboard();
+  if (page === 'history') renderHistory();
+  if (page === 'reminders') renderReminders();
+  if (page === 'routine') renderRoutine();
+}
+function toggleSidebar() {
+  document.getElementById('sidebar').classList.toggle('open');
+}
+
+// ==================== RANGE INPUTS ====================
+function updateRange(type) {
+  const ids = { sleep: 'sleepHours', study: 'studyHours', screen: 'screenTime', break: 'breakTime', exercise: 'exerciseTime' };
+  const vals = { sleep: 'sleepVal', study: 'studyVal', screen: 'screenVal', break: 'breakVal', exercise: 'exerciseVal' };
+  const v = parseFloat(document.getElementById(ids[type]).value);
+  document.getElementById(vals[type]).textContent = v + 'h';
+}
+
+// ==================== STRESS CALCULATOR ====================
+function calcStress(sleep, study, screen, brk, exercise, pressure) {
+  let score = 50; // baseline
+
+  // Sleep: ideal 7-9h
+  if (sleep < 5) score += 25;
+  else if (sleep < 6) score += 15;
+  else if (sleep < 7) score += 5;
+  else if (sleep <= 9) score -= 10;
+  else score += 5; // oversleeping
+
+  // Study: ideal 4-8h
+  if (study > 12) score += 25;
+  else if (study > 10) score += 15;
+  else if (study > 8) score += 8;
+  else if (study >= 4) score -= 5;
+  else if (study < 2) score += 10;
+
+  // Screen time: ideal < 3h
+  if (screen > 8) score += 20;
+  else if (screen > 6) score += 12;
+  else if (screen > 4) score += 6;
+  else if (screen <= 2) score -= 5;
+
+  // Break: ideal 1-2h
+  if (brk < 0.5) score += 15;
+  else if (brk < 1) score += 8;
+  else if (brk <= 2) score -= 8;
+  else if (brk > 3) score += 5;
+
+  // Exercise: ideal 0.5-1.5h
+  if (exercise === 0) score += 10;
+  else if (exercise >= 0.5) score -= 10;
+
+  // Pressure
+  score += pressure;
+
+  return Math.min(100, Math.max(0, Math.round(score)));
+}
+
+function getLevel(score) {
+  if (score < 35) return 'low';
+  if (score < 65) return 'moderate';
+  return 'high';
+}
+
+function levelLabel(level) {
+  return { low: '🟢 Low Stress', moderate: '🟡 Moderate Stress', high: '🔴 High Stress' }[level];
+}
+
+function getSuggestions(sleep, study, screen, brk, exercise, level) {
+  const s = [];
+  if (sleep < 7) s.push({ icon: '😴', text: `Aim for 7–9 hours of sleep. You're getting ${sleep}h which may impair memory and increase cortisol.` });
+  if (sleep > 9) s.push({ icon: '⏰', text: 'You might be oversleeping. Set a consistent wake-up time to regulate your circadian rhythm.' });
+  if (study > 8) s.push({ icon: '📚', text: `${study}h of study is high. Use the Pomodoro method: 25 min focus, 5 min break. Cap deep study at 6–8h.` });
+  if (screen > 4) s.push({ icon: '📱', text: `${screen}h of recreational screen time is high. Try limiting to 2–3h and enable Night Mode after 8 PM.` });
+  if (brk < 1) s.push({ icon: '🧘', text: 'You need more break time. Short breaks every 45–60 min boost productivity and reduce mental fatigue.' });
+  if (exercise === 0) s.push({ icon: '🏃', text: 'You haven\'t exercised today. Even a 20-min walk reduces stress hormones significantly.' });
+  if (level === 'high') {
+    s.push({ icon: '🆘', text: 'High stress detected! Prioritize sleep, reduce study to max 6h today, and try one of the breathing exercises.' });
+    s.push({ icon: '📞', text: 'Consider talking to a counselor or trusted friend. Stress at this level needs social support.' });
+  }
+  if (level === 'moderate') {
+    s.push({ icon: '⚖️', text: 'Moderate stress. Small adjustments to your routine can make a big difference. Focus on consistent sleep.' });
+  }
+  if (level === 'low') {
+    s.push({ icon: '🌟', text: 'Great job! Maintain your healthy routine. Consider adding a creative hobby to keep stress levels low.' });
+  }
+  return s;
+}
+
+function analyzeStress() {
+  const sleep = parseFloat(document.getElementById('sleepHours').value);
+  const study = parseFloat(document.getElementById('studyHours').value);
+  const screen = parseFloat(document.getElementById('screenTime').value);
+  const brk = parseFloat(document.getElementById('breakTime').value);
+  const exercise = parseFloat(document.getElementById('exerciseTime').value);
+  const pressure = parseInt(document.getElementById('pressure').value);
+
+  const score = calcStress(sleep, study, screen, brk, exercise, pressure);
+  const level = getLevel(score);
+
+  // Save to history
+  const entry = {
+    date: new Date().toLocaleString(),
+    sleep, study, screen, brk, exercise, pressure, score, level
+  };
+  history.unshift(entry);
+  if (history.length > 50) history.pop();
+  weeklyData[new Date().getDay()] = score;
+  currentUser.history = history;
+  currentUser.weekly = weeklyData;
+  saveUserData();
+
+  // Show results
+  document.getElementById('resultEmpty').style.display = 'none';
+  document.getElementById('resultContent').style.display = 'block';
+  document.getElementById('resScore').textContent = score;
+
+  const colors = { low: 'var(--low)', moderate: 'var(--moderate)', high: 'var(--high)' };
+  document.getElementById('resScore').style.color = colors[level];
+  document.getElementById('resBadge').innerHTML = `<span class="stress-badge badge-${level}">${levelLabel(level)}</span>`;
+  const meterEl = document.getElementById('resMeter');
+  meterEl.style.width = score + '%';
+  meterEl.style.background = `linear-gradient(90deg, var(--low), ${score > 65 ? 'var(--high)' : score > 35 ? 'var(--moderate)' : 'var(--low)'})`;
+
+  // Table
+  const ideal = { Sleep: '7–9h', Study: '4–8h', 'Screen Time': '≤3h', 'Break Time': '1–2h', Exercise: '0.5–1h' };
+  const statuses = (val, type) => {
+    if (type === 'Sleep') return val >= 7 && val <= 9 ? '<span class="text-low">✓ Good</span>' : '<span class="text-high">✗ Adjust</span>';
+    if (type === 'Study') return val <= 8 ? '<span class="text-low">✓ Good</span>' : '<span class="text-mod">⚠ High</span>';
+    if (type === 'Screen') return val <= 3 ? '<span class="text-low">✓ Good</span>' : '<span class="text-high">✗ Reduce</span>';
+    if (type === 'Break') return val >= 1 && val <= 2 ? '<span class="text-low">✓ Good</span>' : val < 1 ? '<span class="text-high">✗ Low</span>' : '<span class="text-mod">⚠ OK</span>';
+    if (type === 'Exercise') return val >= 0.5 ? '<span class="text-low">✓ Good</span>' : '<span class="text-high">✗ Add some</span>';
+  };
+  const rows = [
+    ['Sleep', sleep + 'h', '7–9h', statuses(sleep, 'Sleep')],
+    ['Study Hours', study + 'h', '4–8h', statuses(study, 'Study')],
+    ['Screen Time', screen + 'h', '≤3h', statuses(screen, 'Screen')],
+    ['Break Time', brk + 'h', '1–2h', statuses(brk, 'Break')],
+    ['Exercise', exercise + 'h', '0.5–1h', statuses(exercise, 'Exercise')],
+  ];
+  document.getElementById('resultTable').innerHTML = rows.map(r =>
+    `<tr><td>${r[0]}</td><td style="font-family:'DM Mono',monospace">${r[1]}</td><td style="color:var(--muted)">${r[2]}</td><td>${r[3]}</td></tr>`
+  ).join('');
+
+  // Suggestions
+  const suggs = getSuggestions(sleep, study, screen, brk, exercise, level);
+  document.getElementById('suggestions').innerHTML = suggs.map(s =>
+    `<div class="suggestion"><div class="suggestion-icon">${s.icon}</div><div class="suggestion-text">${s.text}</div></div>`
+  ).join('');
+
+  renderDashboard();
+  renderHistory();
+  toast('✅ Stress analysis complete!');
+}
+
+// ==================== DASHBOARD ====================
+function renderDashboard() {
+  const latest = history[0];
+  if (latest) {
+    document.getElementById('dash-score').textContent = latest.score;
+    document.getElementById('dash-score-text').textContent = latest.score + '/100';
+    const colors = { low: 'var(--low)', moderate: 'var(--moderate)', high: 'var(--high)' };
+    document.getElementById('dash-level-badge').innerHTML = `<span class="stress-badge badge-${latest.level}">${levelLabel(latest.level)}</span>`;
+    const m = document.getElementById('dashMeter');
+    m.style.width = latest.score + '%';
+    m.style.background = colors[latest.level];
+    const tips = getSuggestions(latest.sleep, latest.study, latest.screen, latest.brk, latest.exercise, latest.level);
+    if (tips.length > 0) document.getElementById('dash-top-suggestion').innerHTML = `${tips[0].icon} ${tips[0].text}`;
+  }
+  document.getElementById('dash-count').textContent = history.length;
+  document.getElementById('dash-reminders').textContent = reminders.length;
+
+  // weekly chart
+  const max = Math.max(...weeklyData, 1);
+  const days = ['S','M','T','W','T','F','S'];
+  const clr = v => v < 35 ? 'var(--low)' : v < 65 ? 'var(--moderate)' : 'var(--high)';
+  document.getElementById('weekChart').innerHTML = weeklyData.map((v,i) =>
+    `<div class="week-bar-wrap">
+      <div class="week-bar" style="height:${(v/max)*80}px;background:${clr(v)};opacity:${v===0?0.2:0.85}"></div>
+    </div>`
+  ).join('');
+
+  // reminders preview
+  const remEl = document.getElementById('dash-reminders-list');
+  if (reminders.length === 0) {
+    remEl.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:12px 0">No reminders set yet.</div>';
+  } else {
+    remEl.innerHTML = reminders.slice(0,3).map(r =>
+      `<div class="reminder-item"><div class="reminder-left"><span class="reminder-icon">${r.icon}</span><div><div class="reminder-name">${r.label}</div><div class="reminder-time">${r.time}</div></div></div></div>`
+    ).join('');
+  }
+}
+
+// ==================== HISTORY ====================
+function renderHistory() {
+  if (history.length === 0) {
+    document.getElementById('historyEmpty').style.display = 'block';
+    document.getElementById('historyTable').style.display = 'none';
+    return;
+  }
+  document.getElementById('historyEmpty').style.display = 'none';
+  document.getElementById('historyTable').style.display = 'block';
+  document.getElementById('historyBody').innerHTML = history.map((e,i) =>
+    `<tr>
+      <td style="color:var(--muted)">${history.length - i}</td>
+      <td style="font-size:12px;color:var(--muted)">${e.date}</td>
+      <td>${e.sleep}h</td><td>${e.study}h</td><td>${e.screen}h</td><td>${e.brk}h</td>
+      <td style="font-family:'DM Mono',monospace;font-weight:600">${e.score}</td>
+      <td><span class="stress-badge badge-${e.level}" style="font-size:11px;padding:4px 10px">${levelLabel(e.level)}</span></td>
+    </tr>`
+  ).join('');
+}
+function clearHistory() {
+  if (confirm('Clear all history?')) {
+    history = [];
+    currentUser.history = [];
+    saveUserData();
+    renderHistory();
+    toast('🗑️ History cleared.');
+  }
+}
+
+// ==================== TIMETABLE ====================
+function generateTimetable() {
+  const level = document.getElementById('ttStressLevel').value;
+  const wakeStr = document.getElementById('wakeTime').value || '06:00';
+  let [h, m] = wakeStr.split(':').map(Number);
+
+  function addMin(hrs) { m += hrs * 60; h += Math.floor(m / 60); m = m % 60; return `${String(h % 24).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+  function t() { return `${String(h % 24).padStart(2,'0')}:${String(m).padStart(2,'0')}`; }
+
+  const schedules = {
+    low: [
+      { icon: '☀️', label: 'Wake Up & Morning Routine', dur: 0.5, color: '#f59e0b' },
+      { icon: '🏃', label: 'Exercise / Walk', dur: 0.5, color: '#10b981' },
+      { icon: '🍳', label: 'Breakfast', dur: 0.5, color: '#f59e0b' },
+      { icon: '📚', label: 'Study Block 1', dur: 2, color: '#00e5ff' },
+      { icon: '☕', label: 'Break', dur: 0.25, color: '#7c3aed' },
+      { icon: '📚', label: 'Study Block 2', dur: 2, color: '#00e5ff' },
+      { icon: '🍽️', label: 'Lunch', dur: 0.75, color: '#f59e0b' },
+      { icon: '😴', label: 'Power Nap (optional)', dur: 0.33, color: '#7c3aed' },
+      { icon: '📚', label: 'Study Block 3', dur: 2, color: '#00e5ff' },
+      { icon: '☕', label: 'Break + Snack', dur: 0.5, color: '#7c3aed' },
+      { icon: '📚', label: 'Study Block 4 / Projects', dur: 1.5, color: '#00e5ff' },
+      { icon: '🍽️', label: 'Dinner', dur: 0.75, color: '#f59e0b' },
+      { icon: '🎮', label: 'Leisure / Hobby', dur: 1, color: '#10b981' },
+      { icon: '🧘', label: 'Relaxation / Reading', dur: 0.5, color: '#10b981' },
+      { icon: '😴', label: 'Sleep', dur: 8, color: '#6366f1' },
+    ],
+    moderate: [
+      { icon: '☀️', label: 'Wake Up & Morning Routine', dur: 0.5, color: '#f59e0b' },
+      { icon: '🧘', label: 'Morning Meditation (10 min)', dur: 0.17, color: '#10b981' },
+      { icon: '🍳', label: 'Healthy Breakfast', dur: 0.5, color: '#f59e0b' },
+      { icon: '🏃', label: 'Light Exercise / Yoga', dur: 0.5, color: '#10b981' },
+      { icon: '📚', label: 'Study Block 1 (Pomodoro)', dur: 1.5, color: '#00e5ff' },
+      { icon: '☕', label: 'Break + Hydration', dur: 0.33, color: '#7c3aed' },
+      { icon: '📚', label: 'Study Block 2', dur: 1.5, color: '#00e5ff' },
+      { icon: '🍽️', label: 'Lunch Break', dur: 1, color: '#f59e0b' },
+      { icon: '📚', label: 'Study Block 3', dur: 1.5, color: '#00e5ff' },
+      { icon: '☕', label: 'Long Break (Walk outside)', dur: 0.5, color: '#7c3aed' },
+      { icon: '📚', label: 'Light Review / Revision', dur: 1, color: '#00e5ff' },
+      { icon: '🍽️', label: 'Dinner', dur: 0.75, color: '#f59e0b' },
+      { icon: '🎮', label: 'Stress Relief Activity', dur: 0.5, color: '#10b981' },
+      { icon: '🛁', label: 'Wind Down Routine', dur: 0.5, color: '#6366f1' },
+      { icon: '😴', label: 'Sleep (7.5–8h)', dur: 8, color: '#6366f1' },
+    ],
+    high: [
+      { icon: '☀️', label: 'Gentle Wake Up', dur: 0.5, color: '#f59e0b' },
+      { icon: '🧘', label: 'Deep Breathing / Meditation', dur: 0.33, color: '#10b981' },
+      { icon: '🍳', label: 'Nutritious Breakfast (no rush)', dur: 0.75, color: '#f59e0b' },
+      { icon: '🚶', label: 'Nature Walk', dur: 0.5, color: '#10b981' },
+      { icon: '📚', label: 'Study Block 1 (short focus)', dur: 1, color: '#00e5ff' },
+      { icon: '☕', label: 'Break + Snack', dur: 0.5, color: '#7c3aed' },
+      { icon: '📚', label: 'Study Block 2', dur: 1, color: '#00e5ff' },
+      { icon: '🍽️', label: 'Lunch + Long Rest', dur: 1.25, color: '#f59e0b' },
+      { icon: '😴', label: 'Nap (20 min)', dur: 0.33, color: '#6366f1' },
+      { icon: '📚', label: 'Light Study / Review Only', dur: 1, color: '#00e5ff' },
+      { icon: '🎮', label: 'Stress Relief Game', dur: 0.5, color: '#10b981' },
+      { icon: '🍽️', label: 'Dinner (away from screens)', dur: 1, color: '#f59e0b' },
+      { icon: '🛁', label: 'Warm Bath / Shower', dur: 0.5, color: '#6366f1' },
+      { icon: '📖', label: 'Light Reading / Journal', dur: 0.5, color: '#7c3aed' },
+      { icon: '😴', label: 'Early Sleep (8–9h target)', dur: 8.5, color: '#6366f1' },
+    ]
+  };
+
+  const slots = schedules[level];
+  const levelTitles = { low: '🟢 Low Stress Schedule', moderate: '🟡 Moderate Stress Schedule', high: '🔴 High Stress Recovery Schedule' };
+  document.getElementById('ttTitle').textContent = levelTitles[level];
+
+  let html = '';
+  slots.forEach(slot => {
+    const start = t();
+    addMin(slot.dur);
+    const end = t();
+    const dur = slot.dur >= 1 ? slot.dur + 'h' : Math.round(slot.dur * 60) + 'min';
+    html += `<div class="tt-slot" style="border-left-color:${slot.color}">
+      <div class="tt-time">${start} – ${end}</div>
+      <div class="tt-icon">${slot.icon}</div>
+      <div class="tt-label">${slot.label}</div>
+      <div class="tt-dur">${dur}</div>
+    </div>`;
+  });
+  document.getElementById('ttContent').innerHTML = html;
+  toast('📅 Timetable generated!');
+}
+
+// ==================== GAMES ====================
+function openGame(type) {
+  document.getElementById('gameArea').classList.add('active');
+  if (type === 'memory') renderMemoryGame();
+  else if (type === 'reaction') renderReactionGame();
+  else if (type === 'breath') renderBreathGame();
+}
+function closeGame() {
+  document.getElementById('gameArea').classList.remove('active');
+}
+
+// MEMORY GAME
+const EMOJIS = ['🌟','🎯','🧠','💡','🎨','🎵','🌈','🔥'];
+let memCards = [], memFlipped = [], memMatched = 0;
+function renderMemoryGame() {
+  const shuffled = [...EMOJIS, ...EMOJIS].sort(() => Math.random() - 0.5);
+  memCards = shuffled.map((e,i) => ({ id: i, emoji: e, flipped: false, matched: false }));
+  memFlipped = []; memMatched = 0;
+  document.getElementById('gameContent').innerHTML = `
+    <h2 style="font-family:'Syne',sans-serif;font-size:22px;margin-bottom:8px">🃏 Memory Match</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:16px">Find all 8 matching pairs!</p>
+    <div id="memScore" style="font-size:13px;color:var(--muted);margin-bottom:12px">Pairs found: 0 / 8</div>
+    <div class="memory-grid" id="memGrid"></div>
+  `;
+  renderMemGrid();
+}
+function renderMemGrid() {
+  document.getElementById('memGrid').innerHTML = memCards.map((c,i) =>
+    `<div class="mem-card ${c.flipped?'flipped':''} ${c.matched?'matched':''} ${!c.flipped&&!c.matched?'hidden-face':''}" onclick="flipMem(${i})">
+      <span>${c.emoji}</span>
+    </div>`
+  ).join('');
+}
+function flipMem(i) {
+  if (memCards[i].flipped || memCards[i].matched || memFlipped.length === 2) return;
+  memCards[i].flipped = true;
+  memFlipped.push(i);
+  renderMemGrid();
+  if (memFlipped.length === 2) {
+    const [a, b] = memFlipped;
+    if (memCards[a].emoji === memCards[b].emoji) {
+      memCards[a].matched = memCards[b].matched = true;
+      memMatched++;
+      memFlipped = [];
+      renderMemGrid();
+      document.getElementById('memScore').textContent = `Pairs found: ${memMatched} / 8`;
+      if (memMatched === 8) { setTimeout(() => { document.getElementById('memScore').textContent = '🎉 You matched all pairs! Great focus!'; }, 200); }
+    } else {
+      setTimeout(() => {
+        memCards[a].flipped = memCards[b].flipped = false;
+        memFlipped = [];
+        renderMemGrid();
+      }, 800);
+    }
+  }
+}
+
+// REACTION GAME
+let reactionState = 'waiting', reactionTimer = null, reactionStart = 0;
+function renderReactionGame() {
+  reactionState = 'waiting';
+  document.getElementById('gameContent').innerHTML = `
+    <h2 style="font-family:'Syne',sans-serif;font-size:22px;margin-bottom:8px">⚡ Reaction Speed</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">Click the circle when it turns green!</p>
+    <div id="reactionCircle" onclick="handleReaction()" style="
+      width:180px;height:180px;border-radius:50%;
+      background:var(--surface2);border:3px solid var(--border);
+      margin:0 auto;cursor:pointer;display:flex;align-items:center;justify-content:center;
+      font-size:16px;color:var(--muted);transition:all 0.3s;user-select:none;
+    ">Click to Start</div>
+    <div id="reactionMsg" style="margin-top:20px;font-size:16px;color:var(--muted);min-height:24px"></div>
+  `;
+}
+function handleReaction() {
+  const circle = document.getElementById('reactionCircle');
+  if (reactionState === 'waiting') {
+    reactionState = 'ready';
+    circle.style.background = '#ef4444';
+    circle.style.color = '#fff';
+    circle.textContent = 'Wait...';
+    const delay = 1500 + Math.random() * 3000;
+    reactionTimer = setTimeout(() => {
+      reactionState = 'go';
+      circle.style.background = '#10b981';
+      circle.textContent = 'CLICK NOW!';
+      reactionStart = Date.now();
+    }, delay);
+  } else if (reactionState === 'ready') {
+    clearTimeout(reactionTimer);
+    reactionState = 'waiting';
+    circle.style.background = 'var(--surface2)';
+    circle.textContent = 'Too early! Try again';
+    circle.style.color = 'var(--muted)';
+    setTimeout(() => { circle.textContent = 'Click to Start'; }, 1500);
+  } else if (reactionState === 'go') {
+    const ms = Date.now() - reactionStart;
+    reactionState = 'waiting';
+    circle.style.background = 'var(--surface2)';
+    circle.style.color = 'var(--muted)';
+    circle.textContent = 'Click to retry';
+    const quality = ms < 200 ? '🚀 Incredible!' : ms < 300 ? '⚡ Great!' : ms < 500 ? '👍 Good' : '🐢 Keep practicing';
+    document.getElementById('reactionMsg').innerHTML = `<strong style="color:var(--accent)">${ms}ms</strong> — ${quality}`;
+  }
+}
+
+// BREATHING GAME
+let breathStep = 0, breathInterval = null;
+function renderBreathGame() {
+  document.getElementById('gameContent').innerHTML = `
+    <h2 style="font-family:'Syne',sans-serif;font-size:22px;margin-bottom:8px">🫁 Breathing Guide</h2>
+    <p style="color:var(--muted);font-size:14px;margin-bottom:20px">4-7-8 technique for deep calm</p>
+    <div style="position:relative;width:180px;height:180px;margin:0 auto 20px">
+      <div id="breathRing" style="
+        width:180px;height:180px;border-radius:50%;
+        border:4px solid var(--accent);
+        display:flex;align-items:center;justify-content:center;
+        transition:transform 4s ease-in-out, border-color 0.5s;
+        font-size:14px;color:var(--accent);font-weight:600;
+        background:rgba(0,229,255,0.05);
+      ">Ready?</div>
+    </div>
+    <div id="breathCount" style="font-size:36px;font-family:'DM Mono',monospace;color:var(--accent);min-height:50px"></div>
+    <button class="btn-primary" style="margin-top:16px;width:200px" onclick="startBreath()">Start Breathing</button>
+  `;
+}
+function startBreath() {
+  clearInterval(breathInterval);
+  const steps = [
+    { label: 'Inhale', dur: 4, scale: 1.3, color: 'var(--accent)' },
+    { label: 'Hold', dur: 7, scale: 1.3, color: 'var(--moderate)' },
+    { label: 'Exhale', dur: 8, scale: 1, color: 'var(--low)' },
+    { label: 'Hold', dur: 4, scale: 1, color: 'var(--accent2)' },
+  ];
+  let si = 0, cnt = 0;
+  function next() {
+    const s = steps[si];
+    const ring = document.getElementById('breathRing');
+    if (!ring) { clearInterval(breathInterval); return; }
+    ring.textContent = s.label;
+    ring.style.transform = `scale(${s.scale})`;
+    ring.style.borderColor = s.color;
+    ring.style.color = s.color;
+    cnt = s.dur;
+    document.getElementById('breathCount').textContent = cnt;
+    breathInterval = setInterval(() => {
+      cnt--;
+      const bc = document.getElementById('breathCount');
+      if (!bc) { clearInterval(breathInterval); return; }
+      bc.textContent = cnt;
+      if (cnt <= 0) {
+        clearInterval(breathInterval);
+        si = (si + 1) % steps.length;
+        setTimeout(next, 200);
+      }
+    }, 1000);
+  }
+  next();
+}
+
+// ==================== REMINDERS ====================
+function renderReminders() {
+  const el = document.getElementById('remindersList');
+  if (!el) return;
+  if (reminders.length === 0) {
+    el.innerHTML = '<div style="color:var(--muted);font-size:14px;padding:12px 0">No reminders yet. Add one!</div>';
+    return;
+  }
+  el.innerHTML = reminders.map((r,i) =>
+    `<div class="reminder-item">
+      <div class="reminder-left">
+        <span class="reminder-icon">${r.icon}</span>
+        <div>
+          <div class="reminder-name">${r.label}</div>
+          <div class="reminder-time">${r.time}</div>
+        </div>
+      </div>
+      <button class="reminder-del" onclick="deleteReminder(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+function addReminder() {
+  const icon = document.getElementById('remType').value;
+  const label = document.getElementById('remLabel').value.trim() || 'Reminder';
+  const time = document.getElementById('remTime').value || '08:00';
+  reminders.push({ icon, label, time });
+  currentUser.reminders = reminders;
+  saveUserData();
+  renderReminders();
+  renderDashboard();
+  document.getElementById('remLabel').value = '';
+  toast('⏰ Reminder added!');
+}
+function deleteReminder(i) {
+  reminders.splice(i, 1);
+  currentUser.reminders = reminders;
+  saveUserData();
+  renderReminders();
+  renderDashboard();
+}
+function startReminderChecker() {
+  setInterval(() => {
+    const now = new Date();
+    const hh = String(now.getHours()).padStart(2,'0');
+    const mm = String(now.getMinutes()).padStart(2,'0');
+    const timeStr = `${hh}:${mm}`;
+    reminders.forEach(r => {
+      if (r.time === timeStr && !r.notified) {
+        r.notified = true;
+        toast(`${r.icon} Reminder: ${r.label}`, 5000);
+      }
+    });
+    // reset next day
+    if (timeStr === '00:00') reminders.forEach(r => r.notified = false);
+  }, 30000);
+}
+
+// ==================== CUSTOM ROUTINE ====================
+function renderRoutine() {
+  const el = document.getElementById('routineSlots');
+  if (!el) return;
+  if (customRoutine.length === 0) {
+    customRoutine = [
+      { time: '06:00', activity: 'Wake Up & Morning Routine' },
+      { time: '07:00', activity: 'Breakfast' },
+      { time: '08:00', activity: 'Study Session 1' },
+    ];
+  }
+  el.innerHTML = customRoutine.map((slot, i) =>
+    `<div class="routine-slot">
+      <input type="time" value="${slot.time}" onchange="updateSlot(${i},'time',this.value)" style="max-width:120px">
+      <input type="text" value="${slot.activity}" placeholder="Activity" onchange="updateSlot(${i},'activity',this.value)">
+      <button class="btn-sm btn-danger" onclick="removeSlot(${i})">✕</button>
+    </div>`
+  ).join('');
+}
+function addRoutineSlot() {
+  customRoutine.push({ time: '09:00', activity: '' });
+  renderRoutine();
+}
+function updateSlot(i, key, val) { customRoutine[i][key] = val; }
+function removeSlot(i) { customRoutine.splice(i,1); renderRoutine(); }
+function saveRoutine() {
+  currentUser.routine = customRoutine;
+  saveUserData();
+
+  // Compare with recommended
+  const recommended = [
+    { time: '06:00', activity: 'Wake Up' }, { time: '06:30', activity: 'Exercise' },
+    { time: '07:00', activity: 'Breakfast' }, { time: '08:00', activity: 'Study Block 1' },
+    { time: '10:00', activity: 'Break' }, { time: '10:30', activity: 'Study Block 2' },
+    { time: '12:30', activity: 'Lunch' }, { time: '13:30', activity: 'Study Block 3' },
+    { time: '15:30', activity: 'Break' }, { time: '16:00', activity: 'Study Block 4' },
+    { time: '18:00', activity: 'Dinner' }, { time: '19:00', activity: 'Leisure' },
+    { time: '22:00', activity: 'Sleep' },
+  ];
+
+  const maxLen = Math.max(customRoutine.length, recommended.length);
+  let html = `<div class="compare-row header"><span>Time</span><span>Your Routine</span><span>Recommended</span></div>`;
+  for (let i = 0; i < maxLen; i++) {
+    const mine = customRoutine[i] || { time: '—', activity: '—' };
+    const rec = recommended[i] || { time: '—', activity: '—' };
+    html += `<div class="compare-row">
+      <span style="font-family:'DM Mono',monospace;font-size:12px;color:var(--muted)">${mine.time}</span>
+      <span>${mine.activity || '—'}</span>
+      <span style="color:var(--muted)">${rec.activity}</span>
+    </div>`;
+  }
+  document.getElementById('comparisonContent').innerHTML = html;
+  toast('💾 Routine saved & compared!');
+}
+
+// ==================== UTILS ====================
+function saveUserData() {
+  if (!currentUser) return;
+  users[currentUser.email] = currentUser;
+  localStorage.setItem('zs_users', JSON.stringify(users));
+}
+function toast(msg, dur = 3000) {
+  const el = document.getElementById('toast');
+  document.getElementById('toastMsg').textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), dur);
+}
+
+// ==================== INIT ====================
+document.addEventListener('DOMContentLoaded', () => {
+  // Pre-fill demo account
+  if (!users['demo@college.edu']) {
+    users['demo@college.edu'] = {
+      name: 'Demo Student', email: 'demo@college.edu', pass: 'Demo@123',
+      history: [], reminders: [
+        { icon: '📚', label: 'Morning Study', time: '08:00' },
+        { icon: '💧', label: 'Drink Water', time: '10:00' },
+        { icon: '😴', label: 'Sleep Time', time: '22:30' },
+      ],
+      routine: [], weekly: [42, 65, 55, 78, 45, 30, 35]
+    };
+    localStorage.setItem('zs_users', JSON.stringify(users));
+  }
+  updateRange('sleep'); updateRange('study'); updateRange('screen');
+  updateRange('break'); updateRange('exercise');
+  // Add initial routine slots
+  customRoutine = [];
+  renderRoutine();
+});
+</script>
+</body>
+</html>
